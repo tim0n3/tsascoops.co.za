@@ -1,0 +1,163 @@
+# ======================================================================
+# TSA Scoops - LiteSpeed/cPanel shared-hosting hardening
+# Domain: tsascoops.co.za
+# ======================================================================
+
+DirectoryIndex index.html
+Options -Indexes
+
+# ======================================================================
+# Redirects and request filtering
+# ======================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Canonical hostname. HTTPS is already redirected by the hosting platform.
+    RewriteCond %{HTTP_HOST} !^tsascoops\.co\.za$ [NC]
+    RewriteRule ^ https://tsascoops.co.za%{REQUEST_URI} [R=301,L,NE]
+
+    # Redirect an explicitly requested /index.html to the root URL.
+    RewriteCond %{THE_REQUEST} \s/+index\.html(?:[?\s]|$) [NC]
+    RewriteRule ^index\.html$ / [R=301,L,NE]
+
+    # Block hidden files and directories, except .well-known for SSL/ACME.
+    RewriteRule "(^|/)\.(?!well-known(?:/|$))" - [F,L,NC]
+
+    # Block common backup, temporary, configuration, source-map and dump files.
+    RewriteRule "(^|/).+\.(?:bak|conf|config|dist|env|ini|log|map|old|orig|sql|swp|tmp|ya?ml)$" - [F,L,NC]
+
+    # Block dependency and build metadata.
+    RewriteRule "(^|/)(?:composer\.(?:json|lock)|package(?:-lock)?\.json|pnpm-lock\.yaml|yarn\.lock|webpack\.config\.js|vite\.config\.(?:js|ts))$" - [F,L,NC]
+    RewriteRule "(^|/)node_modules(?:/|$)" - [F,L,NC]
+
+    # Static website: deny accidentally uploaded server-executable files.
+    RewriteRule "\.(?:asp|aspx|bash|cgi|fcgi|jsp|phar|php(?:[0-9]+)?|phtml|phps|pl|py|sh|shtml)$" - [F,L,NC]
+
+    # Image/font hotlink protection. Empty Referer values remain allowed.
+    RewriteCond %{HTTP_REFERER} !^$
+    RewriteCond %{HTTP_REFERER} !^https?://(?:www\.)?tsascoops\.co\.za(?::[0-9]+)?(?:/|$) [NC]
+    RewriteRule "\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp|woff2?|ttf|otf)$" - [F,L,NC]
+</IfModule>
+
+# ======================================================================
+# MIME types
+# ======================================================================
+
+<IfModule mod_mime.c>
+    AddType application/javascript    .js
+    AddType application/manifest+json .webmanifest
+    AddType image/avif                 .avif
+    AddType image/webp                 .webp
+    AddType image/svg+xml              .svg .svgz
+    AddType font/woff                  .woff
+    AddType font/woff2                 .woff2
+</IfModule>
+
+# ======================================================================# ======================================================================
+# Security headers - LiteSpeed-compatible syntax
+# ======================================================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME-type sniffing.
+    Header set X-Content-Type-Options "nosniff"
+
+    # Prevent this site from being embedded in frames.
+    # Also enforced by CSP frame-ancestors 'none'.
+    Header set X-Frame-Options "DENY"
+
+    # Limit referrer information sent to other sites.
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Disable browser features not required by this static website.
+    Header set Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+
+    # Enforce HTTPS for one year.
+    #
+    # Do not add includeSubDomains until every HTTP-capable subdomain is
+    # confirmed to support HTTPS permanently.
+    Header set Strict-Transport-Security "max-age=31536000"
+
+    # Isolate the page's browsing context from cross-origin pages.
+    #
+    # Remove or change this if the site later relies on cross-origin popup
+    # communication, such as certain OAuth login flows.
+    Header set Cross-Origin-Opener-Policy "same-origin"
+
+    # Prevent other origins from embedding resources served by this site.
+    #
+    # This complements the image hotlink-protection rules. Remove it if
+    # tsascoops.co.za assets must deliberately be embedded by another domain.
+    Header set Cross-Origin-Resource-Policy "same-origin"
+    # Require cross-origin resources to explicitly opt in before they can be loaded.
+    Header set Cross-Origin-Embedder-Policy "require-corp"
+
+    # Current-site-compatible CSP.
+    #
+    # Tighten after Tailwind, fonts, JavaScript and CSS are fully self-hosted
+    # and inline script/style dependencies have been removed.
+    #Header set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self'; media-src 'self'; manifest-src 'self'; worker-src 'self' blob:; frame-src 'none'; upgrade-insecure-requests"
+    Header set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; font-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self'; manifest-src 'self'; worker-src 'self'; frame-src 'none'; upgrade-insecure-requests"
+
+    # Ensure HTML is revalidated rather than retained as immutable content.
+    <FilesMatch "\.(?i:html?)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+
+    # One-year immutable caching only for fingerprinted asset filenames.
+    #
+    # Examples:
+    # site.17c92af4.css
+    # app.a88df719.js
+    # inter.701ab942.woff2
+    <FilesMatch "(?i)\.[0-9a-f]{8,}\.(?:css|js|woff2|avif|webp)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
+# ======================================================================
+
+# ======================================================================
+# Browser caching
+# ======================================================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType text/javascript "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType application/json "access plus 1 day"
+    ExpiresByType application/manifest+json "access plus 1 day"
+    ExpiresByType font/woff "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 30 days"
+    ExpiresByType font/ttf "access plus 30 days"
+    ExpiresByType font/otf "access plus 30 days"
+    ExpiresByType image/avif "access plus 30 days"
+    ExpiresByType image/gif "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/x-icon "access plus 30 days"
+</IfModule>
+
+# ======================================================================
+# Compression
+# ======================================================================
+
+<IfModule mod_deflate.c>
+    <IfModule mod_filter.c>
+        AddOutputFilterByType DEFLATE \
+            application/javascript \
+            application/json \
+            application/manifest+json \
+            application/xml \
+            image/svg+xml \
+            text/css \
+            text/html \
+            text/javascript \
+            text/plain \
+            text/xml
+    </IfModule>
+</IfModule>

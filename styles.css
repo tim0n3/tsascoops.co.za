@@ -1,0 +1,121 @@
+:root {
+            --bg-dark: #0a0a0a;
+            --bg-light: #161616;
+            --gold-primary: #D4AF37;
+            --gold-light: #F3E5AB;
+            --gold-dark: #aa8c2c;
+            --text-main: #e0e0e0;
+            --text-muted: #888888;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Lato', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Typography overrides */
+        .font-serif-custom {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .text-gold {
+            color: var(--gold-primary);
+        }
+
+        .text-gold-light {
+            color: var(--gold-light);
+        }
+
+        /* Custom UI Elements */
+        .hero-gradient {
+            background: radial-gradient(circle at top center, var(--bg-light) 0%, var(--bg-dark) 100%);
+            border-bottom: 1px solid var(--gold-dark);
+        }
+
+        .logo-image {
+            display: block;
+            width: 16rem;
+            max-width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.15);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        @media (min-width: 768px) {
+            .logo-image {
+                width: 20rem;
+            }
+        }
+
+        .logo-image:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Card Styles */
+        .card-hover {
+            background: linear-gradient(145deg, #111111, #1a1a1a);
+            border: 1px solid #333;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-hover::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-8px);
+            border-color: var(--gold-dark);
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.1);
+        }
+
+        .card-hover:hover::before {
+            opacity: 1;
+        }
+
+        /* Button Styles */
+        .btn-custom {
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        .btn-custom:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background-color: var(--gold-primary);
+            color: var(--bg-dark);
+            border: 2px solid var(--gold-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: transparent;
+            color: var(--gold-primary);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--gold-primary);
+            border: 2px solid var(--gold-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--gold-primary);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
